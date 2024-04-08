@@ -1,10 +1,7 @@
 import java.io.IOException;
-import java.io.BufferedReader;
-import java.io.InputStream;
-import java.io.InputStreamReader;
+
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.nio.charset.StandardCharsets;
 
 public class Main {
   public static void main(String[] args) {
@@ -13,42 +10,26 @@ public class Main {
     System.out.println("Logs from your program will appear here!");
 
     // Uncomment this block to pass the first stage
-    ServerSocket serverSocket = null;
-    Socket clientSocket = null;
+    // ServerSocket serverSocket = null;
+    // Socket clientSocket = null;
     int port = 6379;
-    try {
-      serverSocket = new ServerSocket(port);
+    try (ServerSocket serverSocket = new ServerSocket(port)) {
+
       // Since the tester restarts your program quite often, setting SO_REUSEADDR
       // ensures that we don't run into 'Address already in use' errors
       serverSocket.setReuseAddress(true);
       // Wait for connection from client.
-      clientSocket = serverSocket.accept();
 
       // Code for ping
-      String response = "+PONG\r\n";
 
-      BufferedReader reader = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
-
-      String line = reader.readLine();
-
-      while (line != null) {
-        if (line.equalsIgnoreCase("ping")) {
-          clientSocket.getOutputStream().write(response.getBytes(StandardCharsets.UTF_8));
-        }
-        line = reader.readLine();
+      while (true) {
+        Socket clienSocket = serverSocket.accept();
+        Thread clientThread = new Thread(new RedisServer(clienSocket));
+        clientThread.start();
       }
 
-      clientSocket.getOutputStream().write(response.getBytes(StandardCharsets.UTF_8));
     } catch (IOException e) {
       System.out.println("IOException: " + e.getMessage());
-    } finally {
-      try {
-        if (clientSocket != null) {
-          clientSocket.close();
-        }
-      } catch (IOException e) {
-        System.out.println("IOException: " + e.getMessage());
-      }
     }
   }
 }
