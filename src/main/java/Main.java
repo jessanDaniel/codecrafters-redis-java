@@ -1,4 +1,7 @@
 import java.io.IOException;
+import java.io.BufferedReader;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.nio.charset.StandardCharsets;
@@ -23,6 +26,17 @@ public class Main {
 
       // Code for ping
       String response = "+PONG\r\n";
+
+      BufferedReader reader = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
+
+      String line = reader.readLine();
+
+      while (line != null) {
+        if (line.equalsIgnoreCase("ping")) {
+          clientSocket.getOutputStream().write(response.getBytes(StandardCharsets.UTF_8));
+        }
+        line = reader.readLine();
+      }
 
       clientSocket.getOutputStream().write(response.getBytes(StandardCharsets.UTF_8));
     } catch (IOException e) {
