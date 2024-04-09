@@ -6,12 +6,16 @@ import java.net.Socket;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.HashMap;
+// import java.util.HashMap;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class RedisServer implements Runnable {
     private final Socket clientSocket;
 
-    public static HashMap<String, String> keyValueMap = new HashMap<>();
+    // public static HashMap<String, String> keyValueMap = new HashMap<>();
+    // thread safe implementations of hashmap...
+    public static ConcurrentHashMap<String, String> keyValueMap = new ConcurrentHashMap<>();
+    public static ConcurrentHashMap<String, Long> keyExpiryTimeMap = new ConcurrentHashMap<>();
 
     public RedisServer(Socket clienSocket) {
         this.clientSocket = clienSocket;
@@ -60,10 +64,41 @@ public class RedisServer implements Runnable {
 
                         case Commands.SET:
                             keyValueMap.put(elements.get(3), elements.get(5));
+
+                            if (elements.size() == 10 && elements.get(7).equalsIgnoreCase(Commands.PX)) {
+                                Long expiryTime = System.currentTimeMillis();
+
+                                try {
+                                    expiryTime += Long.parseLong(elements.get(9));
+                                } catch (NumberFormatException e) {
+                                    // TODO: handle exception
+                                    sendResponse("Expiry time not a number");
+                                }
+                                keyExpiryTimeMap.put(elements.get(3), expiryTime);
+                            }
+
                             sendResponse(new Set().execute("OK"));
+
                             break;
                         case Commands.GET:
-                            sendResponse(new Get().execute(keyValueMap.get(elements.get(3))));
+                            String key = elements.get(3);
+                            String value = keyValueMap.get(key);
+
+                            boolean isExpired = false;
+
+                            if (keyExpiryTimeMap.containsKey(key)) {
+                                if (System.currentTimeMillis() > keyExpiryTimeMap.get(key)) {
+                                    isExpired = true;
+                                    keyExpiryTimeMap.remove(key);
+                                    keyValueMap.remove(key);
+                                }
+                            }
+
+                            if (isExpired) {
+                                sendResponse(new Expired().execute(""));
+                            } else {
+                                sendResponse(new Get().execute(value));
+                            }
                             break;
                         default:
                             sendResponse("Invalid Commands");
