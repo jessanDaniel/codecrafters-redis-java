@@ -6,9 +6,12 @@ import java.net.Socket;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.HashMap;
 
 public class RedisServer implements Runnable {
     private final Socket clientSocket;
+
+    public static HashMap<String, String> keyValueMap = new HashMap<>();
 
     public RedisServer(Socket clienSocket) {
         this.clientSocket = clienSocket;
@@ -48,14 +51,22 @@ public class RedisServer implements Runnable {
                     }
 
                     switch (elements.get(1).toUpperCase()) {
-                        case Command.PING:
+                        case Commands.PING:
                             sendResponse(new Ping().execute("PONG"));
                             break;
-                        case Command.ECHO:
+                        case Commands.ECHO:
                             sendResponse(new Echo().execute(elements.get(3)));
                             break;
+
+                        case Commands.SET:
+                            keyValueMap.put(elements.get(3), elements.get(5));
+                            sendResponse(new Set().execute("OK"));
+                            break;
+                        case Commands.GET:
+                            sendResponse(new Get().execute(keyValueMap.get(elements.get(3))));
+                            break;
                         default:
-                            sendResponse("Invalid Response");
+                            sendResponse("Invalid Commands");
                             break;
                     }
                 }
