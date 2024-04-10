@@ -12,6 +12,9 @@ public class Main {
     // ServerSocket serverSocket = null;
     // Socket clientSocket = null;
     int port = 6379;
+    if (args.length == 2) {
+      port = Integer.valueOf(args[1]);
+    }
     try (ServerSocket serverSocket = new ServerSocket(port)) {
 
       // Since the tester restarts your program quite often, setting SO_REUSEADDR
